@@ -14,17 +14,36 @@ export class SearchService {
     });
   }
 
-  async indexData(index: string, id: string, body: any) {
+  async indexData(index: string, id: string, document: any) {
     return this.client.index({
-      index, id, body
+      index: index,
+      document: document,
+      id: id
     });
   }
 
-  async searchData(index: string, query: object) {
-    return this.client.search({
+  async searchData(index: string, must: object, page: number, pageSize: number) {
+    const searchQuery = {
+      bool: {
+        must: must,
+      },
+    };
+    const from = (page - 1) * pageSize;
+
+    const response = await this.client.search({
       index: index,
-      body: query,
-    })
+      query: searchQuery,
+      from: from,
+      size: pageSize
+    });
+
+    const persons = response.hits.hits.map(hit => hit._source);
+
+    return {
+      persons,
+      pageSize,
+      page,
+    };
   }
 
   async bulkIndexPersons(index: string, persons: Person[]) {
@@ -35,7 +54,7 @@ export class SearchService {
 
     return await this.client.bulk({
       refresh: true,
-      body: operations,
+      operations: operations,
     });
   }
 
